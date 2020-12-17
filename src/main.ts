@@ -1,20 +1,15 @@
 import { SimpleGit } from 'simple-git';
-import JiraApi from 'jira-client';
 import { OctokitWrapper } from './octokit';
+import { IssueSummary, TrackerIssuesExporter } from './types';
 
 export type GroupLog = (groupName: string, message: string) => void;
 
 export type MainInputs = {
   octokit: OctokitWrapper;
-  jira: JiraApi;
+  trackerIssueExporter: TrackerIssuesExporter;
   git: SimpleGit;
   prNumber: number;
   path: string;
-};
-
-export type Tokens = {
-  githubToken: string;
-  jiraToken: string;
 };
 
 const renderTable = (header: string[], body: string[][]): string => {
@@ -26,27 +21,27 @@ const renderTable = (header: string[], body: string[][]): string => {
 };
 
 const wrapTableWithComment = (table: string) => {
-  return ['<!--JIRA-ISSUE-START-->', '## Jira Issue', table, '<!--JIRA-ISSUE-END-->'].join('\n');
+  return ['<!--RELATED-ISSUE-START-->', '## Related Issues (Auto updated)', table, '<!--RELATED-ISSUE-END-->'].join('\n');
 }
 
-const replaceJiraIssue = (body: string, table: string) => {
-  const result = body.replace(/<!--JIRA-ISSUE-START-->(.|\s)*<!--JIRA-ISSUE-END-->/, wrapTableWithComment(table));
+const replaceIssueTableString = (body: string, table: string) => {
+  const result = body.replace(/<!--RELATED-ISSUE-START-->(.|\s)*<!--RELATED-ISSUE-END-->/, wrapTableWithComment(table));
   return result;
 };
 
-const appendJiraIssue = (body: string, table: string) => {
+const appendIssueTableString = (body: string, table: string) => {
   return body + '\n' + wrapTableWithComment(table);
 };
 
-const ensureJiraIssue = (body: string, table: string, replace: boolean) => {
-  const newBody = replace ? replaceJiraIssue(body, table) : appendJiraIssue(body, table);
+const ensureIssueTableString = (body: string, table: string, replace: boolean) => {
+  const newBody = replace ? replaceIssueTableString(body, table) : appendIssueTableString(body, table);
   return newBody;
 };
 
 class IssueNumberTitleExporter {
   constructor(
     private octokit: OctokitWrapper,
-    private jira: JiraApi,
+    private trackerIssueExporter: TrackerIssuesExporter,
     private git: SimpleGit,
     private log: GroupLog = () => {},
   ) {}
@@ -87,21 +82,20 @@ class IssueNumberTitleExporter {
     return uniqueIssueNumbers.sort();
   };
 
-  private async getJiraTitle(issueNumber: string): Promise<string> {
-    return this.jira.findIssue(issueNumber)
-      .then(issue => issue.fields.summary);
+  private async getIssueFromTracker(issueNumber: string): Promise<IssueSummary> {
+    return this.trackerIssueExporter.findIssue(issueNumber);
   }
 
   private async listIssueNumberTitles(from: string, to: string, path: string): Promise<[string, string][]> {
     const issueNumbers = await this.listUniqueIssueNumbers(from, to, path);
     let issueNumberTitlePairs: [string, string][] = [];
 
-    const logGroup = 'Get jira title for each issue number';
+    const logGroup = 'Get issue title for each issue number';
     for (let i = 0; i < issueNumbers.length; ++i) {
       const issueNumber = issueNumbers[i];
       try {
-        const title = await this.getJiraTitle(issueNumber);
-        issueNumberTitlePairs.push([`[${issueNumber}](https://riiid-pioneer.atlassian.net/browse/${issueNumber})`, title]);
+        const {title, link} = await this.getIssueFromTracker(issueNumber);
+        issueNumberTitlePairs.push([`[${issueNumber}](${link})`, title]);
         this.log(logGroup, `[${i + 1}/${issueNumbers.length}] Success: [${issueNumber}] | ${title}`);
       } catch (e) {
         this.log(logGroup, `[${i + 1}/${issueNumbers.length}] Fail: [${issueNumber}] ${e.toString()}`);
@@ -126,13 +120,13 @@ class IssueNumberTitleExporter {
 }
 
 const main = async (inputs: MainInputs, log: GroupLog) => {
-  const {octokit, jira, git} = inputs;
+  const {octokit, trackerIssueExporter, git} = inputs;
 
-  const issueNumberTitleExporter = new IssueNumberTitleExporter(octokit, jira, git, log);
+  const issueNumberTitleExporter = new IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log);
   const issueNumberTitles = await issueNumberTitleExporter.listIssueNumberTitlesFromPR(inputs.prNumber, inputs.path);
   const tableString = renderTable(['#issue', 'title'], issueNumberTitles);
   const body = (await octokit.getPull(inputs.prNumber)).data.body;
-  const alreadyAppended = body.includes('-JIRA-ISSUE-START-');
+  const alreadyAppended = body.includes('-RELATED-ISSUE-START-');
 
   const logGroup = 'Attach table';
 
@@ -140,11 +134,11 @@ const main = async (inputs: MainInputs, log: GroupLog) => {
   log(logGroup, tableString);
   log(logGroup, '\n-------------------Table-------------------\n');
   if (alreadyAppended) {
-    log(logGroup, 'Jira table already exists, just replace');
+    log(logGroup, 'Related issues table already exists, just replace');
   } else {
-    log(logGroup, 'Append jira table');
+    log(logGroup, 'Append related issues table');
   }
-  const newBody = ensureJiraIssue(body, tableString, alreadyAppended);
+  const newBody = ensureIssueTableString(body, tableString, alreadyAppended);
 
   log(logGroup, '\n-------------------Old body-------------------\n');
   log(logGroup, body);
