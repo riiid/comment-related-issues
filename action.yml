@@ -1,0 +1,24 @@
+name: 'comment-related-issues'
+description: 'Comment on Github PR with related issues in your issue trackers.'
+inputs:
+  tracker:
+    description: 'Issue tracker name. Available values are jira'
+    required: true
+  jira-protocol: 'Jira protocol'
+    description: 'Jira protocol. Available values are http and https. Default value is https'
+  jira-host:
+    description: 'Jira hostname.'
+  jira-username:
+    description: 'Jira username. It is required when you set the tracker as jira.'
+  jira-token:
+    description: 'Jira token from the Jira account. It is required when you set the tracker as jira.'
+  path:
+    description: 'Relative path from git repo's root to where you are interested in.'
+
+outputs:
+  success:
+    description: 'success'
+
+runs:
+  using: 'node12'
+  main: 'dist/index.js'
