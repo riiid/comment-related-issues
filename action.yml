@@ -4,16 +4,18 @@ inputs:
   tracker:
     description: 'Issue tracker name. Available values are jira'
     required: true
-  jira-protocol: 'Jira protocol'
-    description: 'Jira protocol. Available values are http and https. Default value is https'
+  jira-protocol:
+    description: 'Jira protocol. Available values are http and https. Default value is https. Required for Jira.'
+    default: 'https'
   jira-host:
-    description: 'Jira hostname.'
+    description: 'Jira hostname. Required for Jira.'
   jira-username:
-    description: 'Jira username. It is required when you set the tracker as jira.'
+    description: 'Jira username. Required for Jira.'
   jira-token:
-    description: 'Jira token from the Jira account. It is required when you set the tracker as jira.'
+    description: 'Jira token from the Jira account. Required for Jira.'
   path:
-    description: 'Relative path from git repo's root to where you are interested in.'
+    description: "Relative path from git repo's root to where you are interested in."
+    default: '.'
 
 outputs:
   success:
