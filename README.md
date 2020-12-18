@@ -13,8 +13,16 @@ jobs:
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
+      # for private action
+      - name: Checkout private GitHub Action comment-related-issues
+        uses: actions/checkout@v2
+        with:
+          repository: riiid/comment-related-issues
+          ref: v0.0.1
+          token: ${{ secrets.GITHUB_TOKEN }}
+          ssh-key: ${{ secrets.SSH_KEY }}
+          path: .github/actions/comment-related-issues
       - uses: ./.github/actions/comment-related-issues
-        id: rcj
         with:
           tracker: jira
           jira-protocol: https
