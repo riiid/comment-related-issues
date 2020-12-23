@@ -47089,8 +47089,17 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
+    result["default"] = mod;
+    return result;
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 var jira_client_1 = __importDefault(__webpack_require__(384));
+var url_1 = __webpack_require__(835);
+var path = __importStar(__webpack_require__(622));
 var JiraIssueExporter = /** @class */ (function () {
     function JiraIssueExporter(config) {
         this.config = config;
@@ -47106,15 +47115,17 @@ var JiraIssueExporter = /** @class */ (function () {
     }
     JiraIssueExporter.prototype.findIssue = function (issueNumber) {
         return __awaiter(this, void 0, void 0, function () {
-            var issue;
+            var issue, previewUrl;
             return __generator(this, function (_a) {
                 switch (_a.label) {
                     case 0: return [4 /*yield*/, this.jira.findIssue(issueNumber)];
                     case 1:
                         issue = _a.sent();
+                        previewUrl = new url_1.URL(this.config.protocol + "://" + this.config.host);
+                        previewUrl.pathname = path.join(previewUrl.pathname, 'browse', issueNumber);
                         return [2 /*return*/, {
                                 title: issue.fields.summary,
-                                link: issue.self,
+                                link: previewUrl.toString(),
                             }];
                 }
             });
