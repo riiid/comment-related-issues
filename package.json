@@ -1,8 +1,8 @@
 {
   "name": "comment-related-issues",
-  "version": "1.0.0",
+  "version": "0.0.3",
   "main": "index.js",
-  "license": "MIT",
+  "license": "(MIT OR Apache-2.0)",
   "scripts": {
     "build": "rm -rf dist tmp && tsc && ncc build tmp/index.js -o dist"
   },
