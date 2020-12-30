@@ -1,3 +1,6 @@
+# What it is?
+It captures CAPITAL-number(ex. ABC-123, EFG-201) from commit messages and append related issues into the PR description.
+
 # Usage
 ```yaml
 name: comment-related-issues
