@@ -57,11 +57,12 @@ class IssueNumberTitleExporter {
   }
 
   private extractIssueNumbers (s: string): string[] {
+    const uprStr = s.toUpperCase();
     let result: string[] = [];
     let x;
     const regex = /([A-Z]+-\d+)/g;
-    while ((x = regex.exec(s)) !== null) {
-      result = result.concat(x.slice(1));;
+    while ((x = regex.exec(uprStr)) !== null) {
+      result = result.concat(x.slice(1));
     }
     return result;
   };
