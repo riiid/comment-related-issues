@@ -127,7 +127,7 @@ const main = async (inputs: MainInputs, log: GroupLog) => {
   const issueNumberTitles = await issueNumberTitleExporter.listIssueNumberTitlesFromPR(inputs.prNumber, inputs.path);
   const tableString = renderTable(['#issue', 'title'], issueNumberTitles);
   const body = (await octokit.getPull(inputs.prNumber)).data.body;
-  const alreadyAppended = body.includes('-RELATED-ISSUE-START-');
+  const alreadyAppended = body != null && body.includes('-RELATED-ISSUE-START-');
 
   const logGroup = 'Attach table';
 

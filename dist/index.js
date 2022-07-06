@@ -8415,6 +8415,25 @@ Promise.map = function (promises, fn, options, _filter) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -8466,13 +8485,6 @@ var __read = (this && this.__read) || function (o, n) {
         finally { if (e) throw e.error; }
     }
     return ar;
-};
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
 };
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
@@ -34554,6 +34566,7 @@ module.exports = nodebackForPromise;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.OctokitWrapper = exports.createOctokit = void 0;
 var action_1 = __webpack_require__(725);
 function createOctokit() {
     return new action_1.Octokit();
@@ -47050,6 +47063,25 @@ function resolveIds(schema) {
 
 "use strict";
 
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    Object.defineProperty(o, k2, { enumerable: true, get: function() { return m[k]; } });
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -47089,14 +47121,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
-var __importStar = (this && this.__importStar) || function (mod) {
-    if (mod && mod.__esModule) return mod;
-    var result = {};
-    if (mod != null) for (var k in mod) if (Object.hasOwnProperty.call(mod, k)) result[k] = mod[k];
-    result["default"] = mod;
-    return result;
-};
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.JiraIssueExporter = void 0;
 var jira_client_1 = __importDefault(__webpack_require__(384));
 var url_1 = __webpack_require__(835);
 var path = __importStar(__webpack_require__(622));
@@ -54454,12 +54480,12 @@ var IssueNumberTitleExporter = /** @class */ (function () {
         });
     };
     IssueNumberTitleExporter.prototype.extractIssueNumbers = function (s) {
+        var uprStr = s.toUpperCase();
         var result = [];
         var x;
         var regex = /([A-Z]+-\d+)/g;
-        while ((x = regex.exec(s)) !== null) {
+        while ((x = regex.exec(uprStr)) !== null) {
             result = result.concat(x.slice(1));
-            ;
         }
         return result;
     };
@@ -54576,7 +54602,7 @@ var main = function (inputs, log) { return __awaiter(void 0, void 0, void 0, fun
                 return [4 /*yield*/, octokit.getPull(inputs.prNumber)];
             case 2:
                 body = (_a.sent()).data.body;
-                alreadyAppended = body.includes('-RELATED-ISSUE-START-');
+                alreadyAppended = body != null && body.includes('-RELATED-ISSUE-START-');
                 logGroup = 'Attach table';
                 log(logGroup, '\n-------------------Table-------------------\n');
                 log(logGroup, tableString);
