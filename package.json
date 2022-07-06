@@ -1,6 +1,6 @@
 {
   "name": "comment-related-issues",
-  "version": "0.0.4",
+  "version": "0.0.5",
   "main": "index.js",
   "license": "(MIT OR Apache-2.0)",
   "scripts": {
