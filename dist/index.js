@@ -54590,19 +54590,20 @@ var IssueNumberTitleExporter = /** @class */ (function () {
 }());
 var main = function (inputs, log) { return __awaiter(void 0, void 0, void 0, function () {
     var octokit, trackerIssueExporter, git, issueNumberTitleExporter, issueNumberTitles, tableString, body, alreadyAppended, logGroup, newBody;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
+    var _a;
+    return __generator(this, function (_b) {
+        switch (_b.label) {
             case 0:
                 octokit = inputs.octokit, trackerIssueExporter = inputs.trackerIssueExporter, git = inputs.git;
                 issueNumberTitleExporter = new IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log);
                 return [4 /*yield*/, issueNumberTitleExporter.listIssueNumberTitlesFromPR(inputs.prNumber, inputs.path)];
             case 1:
-                issueNumberTitles = _a.sent();
+                issueNumberTitles = _b.sent();
                 tableString = renderTable(['#issue', 'title'], issueNumberTitles);
                 return [4 /*yield*/, octokit.getPull(inputs.prNumber)];
             case 2:
-                body = (_a.sent()).data.body;
-                alreadyAppended = body != null && body.includes('-RELATED-ISSUE-START-');
+                body = (_a = (_b.sent()).data.body) !== null && _a !== void 0 ? _a : '';
+                alreadyAppended = body.includes('-RELATED-ISSUE-START-');
                 logGroup = 'Attach table';
                 log(logGroup, '\n-------------------Table-------------------\n');
                 log(logGroup, tableString);
@@ -54621,7 +54622,7 @@ var main = function (inputs, log) { return __awaiter(void 0, void 0, void 0, fun
                 log(logGroup, newBody);
                 log(logGroup, '\n-------------------New body-------------------\n');
                 return [4 /*yield*/, octokit.updatePull(inputs.prNumber, newBody)];
-            case 3: return [2 /*return*/, _a.sent()];
+            case 3: return [2 /*return*/, _b.sent()];
         }
     });
 }); };
