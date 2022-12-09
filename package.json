@@ -7,7 +7,7 @@
     "build": "rm -rf dist tmp && tsc && ncc build tmp/index.js -o dist"
   },
   "dependencies": {
-    "@actions/core": "^1.2.4",
+    "@actions/core": "^1.10.0",
     "@actions/github": "^4.0.0",
     "@octokit/action": "^3.0.5",
     "jira-client": "^6.18.0",
