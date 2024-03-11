@@ -4,6 +4,8 @@ inputs:
   tracker:
     description: 'Issue tracker name. Available values are jira'
     required: true
+  project-key:
+    description: 'Project key like jira project key'
   jira-protocol:
     description: 'Jira protocol. Available values are http and https. Default value is https. Required for Jira.'
     default: 'https'

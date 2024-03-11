@@ -28,6 +28,7 @@ jobs:
       - uses: ./.github/actions/comment-related-issues
         with:
           tracker: jira
+          project-key: TE
           jira-protocol: https
           jira-host: my-jira-host.com
           jira-username: john
@@ -42,6 +43,7 @@ __Note:__ The `fetch-depth` option in `actions/checkout@v2` needs to be set 0 be
 | Name          | Required | Default | Description                                                                                    |
 | ------------- | :------: | ------- | ---------------------------------------------------------------------------------------------- |
 | tracker       |    [x]   |         | Issue tracker name. Available values are jira                                                  |
+| project-key   |    [ ]   |         | Project key like jira project key                                                |
 | jira-protocol |    [ ]   | https   | Jira protocol. Available values are http and https. Default value is https. Required for Jira. |
 | jira-host     |    [ ]   |         | Jira hostname. Required for Jira.                                                              |
 | jira-username |    [ ]   |         | Jira username. Required for Jira.                                                              |
