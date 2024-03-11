@@ -66,8 +66,8 @@ const createTrackerIssueExporter = (tracker: string) => {
       projectKey: core.getInput('project-key'),
     }, getLogger(core));
   } catch (e) {
-    core.error(e);
-    core.setFailed(e);
+    core.error(e as Error);
+    core.setFailed(e as Error);
     success = false;
   }
 

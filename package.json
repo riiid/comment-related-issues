@@ -15,7 +15,7 @@
   },
   "devDependencies": {
     "@types/jira-client": "^6.13.1",
-    "@zeit/ncc": "^0.22.3",
+    "@vercel/ncc": "^0.38.1",
     "markdown-table": "^2.0.0",
     "yaml": "^1.10.0"
   }
