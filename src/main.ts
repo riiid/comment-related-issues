@@ -119,12 +119,7 @@ class IssueNumberTitleExporter {
 
     const logGroup = 'Start';
     this.log(logGroup, `compute log from ${from} to ${to} for ${path}`);
-
-    const projectKey = core.getInput('project-key');
-
-    if (projectKey) {
-      this.log(logGroup, `Project Key: ${projectKey}`);
-    }
+    this.log(logGroup, `Project Key: ${ core.getInput('project-key')}`);
 
     return this.listIssueNumberTitles(from, to, path);
   }
