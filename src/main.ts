@@ -101,7 +101,7 @@ class IssueNumberTitleExporter {
         issueNumberTitlePairs.push([`[${issueNumber}](${link})`, title]);
         this.log(logGroup, `[${i + 1}/${issueNumbers.length}] Success: [${issueNumber}] | ${title}`);
       } catch (e) {
-        this.log(logGroup, `[${i + 1}/${issueNumbers.length}] Fail: [${issueNumber}] ${e.toString()}`);
+        this.log(logGroup, `[${i + 1}/${issueNumbers.length}] Fail: [${issueNumber}] ${(e as Error).toString()}`);
       }
     }
     return issueNumberTitlePairs;
