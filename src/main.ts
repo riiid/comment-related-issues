@@ -117,7 +117,14 @@ class IssueNumberTitleExporter {
     const from = response.data.head.sha;
     const to = response.data.base.sha;
 
-    this.log('Start', `compute log from ${from} to ${to} for ${path}`);
+    const logGroup = 'Start';
+    this.log(logGroup, `compute log from ${from} to ${to} for ${path}`);
+
+    const projectKey = core.getInput('project-key');
+
+    if (projectKey) {
+      this.log(logGroup, `Project Key: ${projectKey}`);
+    }
 
     return this.listIssueNumberTitles(from, to, path);
   }
