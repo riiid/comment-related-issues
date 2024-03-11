@@ -1,6 +1,8 @@
 import { SimpleGit } from 'simple-git';
 import { OctokitWrapper } from './octokit';
 import { IssueSummary, TrackerIssuesExporter } from './types';
+import * as core from '@actions/core';
+
 
 export type GroupLog = (groupName: string, message: string) => void;
 
@@ -60,7 +62,8 @@ class IssueNumberTitleExporter {
     const uprStr = s.toUpperCase();
     let result: string[] = [];
     let x;
-    const regex = /([A-Z]+-\d+)/g;
+    const projectKey = core.getInput('project-key')?.toUpperCase();
+    const regex = projectKey ? new RegExp(`(${projectKey}-\\d+)`, 'g') :  /([A-Z]?[A-Z0-9]+-\d+)/g
     while ((x = regex.exec(uprStr)) !== null) {
       result = result.concat(x.slice(1));
     }
