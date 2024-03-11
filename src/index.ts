@@ -63,6 +63,7 @@ const createTrackerIssueExporter = (tracker: string) => {
       git,
       prNumber,
       path: path || '.',
+      projectKey: core.getInput('project-key'),
     }, getLogger(core));
   } catch (e) {
     core.error(e);

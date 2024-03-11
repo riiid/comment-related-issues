@@ -1,8 +1,6 @@
 import { SimpleGit } from 'simple-git';
 import { OctokitWrapper } from './octokit';
 import { IssueSummary, TrackerIssuesExporter } from './types';
-import * as core from '@actions/core';
-
 
 export type GroupLog = (groupName: string, message: string) => void;
 
@@ -12,6 +10,7 @@ export type MainInputs = {
   git: SimpleGit;
   prNumber: number;
   path: string;
+  projectKey?: string;
 };
 
 const renderTable = (header: string[], body: string[][]): string => {
@@ -46,6 +45,7 @@ class IssueNumberTitleExporter {
     private trackerIssueExporter: TrackerIssuesExporter,
     private git: SimpleGit,
     private log: GroupLog = () => {},
+    private projectKey?: string
   ) {}
 
   private async listCommits(from: string, to: string, path: string): Promise<Array<{hash: string; message: string;}>> {
@@ -62,8 +62,7 @@ class IssueNumberTitleExporter {
     const uprStr = s.toUpperCase();
     let result: string[] = [];
     let x;
-    const projectKey = core.getInput('project-key')?.toUpperCase();
-    const regex = projectKey ? new RegExp(`(${projectKey}-\\d+)`, 'g') :  /([A-Z]?[A-Z0-9]+-\d+)/g
+    const regex = this.projectKey ? new RegExp(`(${this.projectKey.toUpperCase()}-\\d+)`, 'g') :  /([A-Z]?[A-Z0-9]+-\d+)/g
     while ((x = regex.exec(uprStr)) !== null) {
       result = result.concat(x.slice(1));
     }
@@ -119,16 +118,15 @@ class IssueNumberTitleExporter {
 
     const logGroup = 'Start';
     this.log(logGroup, `compute log from ${from} to ${to} for ${path}`);
-    this.log(logGroup, `Project Key: ${ core.getInput('project-key')}`);
-
+    this.log(logGroup, this.projectKey ? `Project key is ${this.projectKey}`: 'no key input');
     return this.listIssueNumberTitles(from, to, path);
   }
 }
 
 const main = async (inputs: MainInputs, log: GroupLog) => {
-  const {octokit, trackerIssueExporter, git} = inputs;
+  const {octokit, trackerIssueExporter, git, projectKey} = inputs;
 
-  const issueNumberTitleExporter = new IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log);
+  const issueNumberTitleExporter = new IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log, projectKey);
   const issueNumberTitles = await issueNumberTitleExporter.listIssueNumberTitlesFromPR(inputs.prNumber, inputs.path);
   const tableString = renderTable(['#issue', 'title'], issueNumberTitles);
   const body = (await octokit.getPull(inputs.prNumber)).data.body ?? '';
