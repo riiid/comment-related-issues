@@ -48,14 +48,14 @@ class IssueNumberTitleExporter {
     private projectKey?: string
   ) {}
 
-  private async listCommits(from: string, to: string, path: string): Promise<Array<{hash: string; message: string;}>> {
+  private async listCommits(from: string, to: string, path: string): Promise<Array<{hash: string; message: string; body: string}>> {
     const bestAncestor = (await this.git.raw(['merge-base', from, to])).trim();
     const logs = await this.git.log({
       from,
       to: bestAncestor,
       file: path,
     });
-    return logs.all.map(({hash, message}) => ({hash, message}));
+    return logs.all.map(({hash, message, body}) => ({hash, message, body}));
   }
 
   private extractIssueNumbers (s: string): string[] {
@@ -78,7 +78,7 @@ class IssueNumberTitleExporter {
       this.log(logGroup, `${commit.hash} ${commit.message}`);
     }
 
-    const commitMessages = commits.map(commit => commit.message);
+    const commitMessages = commits.map(commit => commit.message + (commit.body ? `\n${commit.body}` : ''));
 
     const allIssueNumbers = commitMessages.flatMap(msg => this.extractIssueNumbers(msg));
     const uniqueIssueNumbers = [...new Set(allIssueNumbers)];
