@@ -11,6 +11,13 @@ export type MainInputs = {
   prNumber: number;
   path: string;
   projectKey?: string;
+  includeScope?: boolean;
+};
+
+export type IssueInfo = {
+  issueNumber: string;
+  title: string;
+  scopes: string[];
 };
 
 const renderTable = (header: string[], body: string[][]): string => {
@@ -18,7 +25,7 @@ const renderTable = (header: string[], body: string[][]): string => {
 
   const headerString = wrap(header.join('|'), '|');
   const headerBody = body.map(row => wrap(row.join('|'), '|'));
-  return [headerString, '|---|---|', ...headerBody].join('\n');
+  return [headerString, '|' + header.map(() => '---').join('|') + '|', ...headerBody].join('\n');
 };
 
 const wrapTableWithComment = (table: string) => {
@@ -39,13 +46,22 @@ const ensureIssueTableString = (body: string, table: string, replace: boolean) =
   return newBody;
 };
 
+// extract scope from commit message
+// e.g. fix(scope): message -> scope
+// e.g. fix: message -> undefined
+const extractScopeFromCommitMessage = (message: string): string | undefined => {
+  const match = message.match(/^(\w+)(?:\(([^)]+)\))?:/);
+  return match ? match[2] : undefined;
+};
+
 class IssueNumberTitleExporter {
   constructor(
     private octokit: OctokitWrapper,
     private trackerIssueExporter: TrackerIssuesExporter,
     private git: SimpleGit,
     private log: GroupLog = () => {},
-    private projectKey?: string
+    private projectKey?: string,
+    private includeScope: boolean = false
   ) {}
 
   private async listCommits(from: string, to: string, path: string): Promise<Array<{hash: string; message: string; body: string}>> {
@@ -58,18 +74,23 @@ class IssueNumberTitleExporter {
     return logs.all.map(({hash, message, body}) => ({hash, message, body}));
   }
 
-  private extractIssueNumbers (s: string): string[] {
-    const uprStr = s.toUpperCase();
-    let result: string[] = [];
-    let x;
-    const regex = this.projectKey ? new RegExp(`(${this.projectKey.toUpperCase()}-\\d+)`, 'g') :  /([A-Z]?[A-Z0-9]+-\d+)/g
-    while ((x = regex.exec(uprStr)) !== null) {
-      result = result.concat(x.slice(1));
+  private extractIssueNumbersWithScope(str: string): Array<{ issueNumber: string; scope?: string }> {
+    const strs = str.split('\n');
+    const result: Array<{ issueNumber: string; scope?: string }> = [];
+    for (const line of strs) {
+      const uprStr = line.toUpperCase();
+      let x;
+      const regex = this.projectKey ? new RegExp(`(${this.projectKey.toUpperCase()}-\\d+)`, 'g') :  /([A-Z]?[A-Z0-9]+-\d+)/g
+      while ((x = regex.exec(uprStr)) !== null) {
+        const issueNumber = x[1];
+        const scope = this.includeScope ? extractScopeFromCommitMessage(line) : undefined;
+        result.push({ issueNumber, scope });
+      }
     }
     return result;
-  };
+  }
 
-  private async listUniqueIssueNumbers(from: string, to: string, path: string): Promise<string[]> {
+  private async listUniqueIssueNumbers(from: string, to: string, path: string): Promise<Map<string, Set<string>>> {
     const commits = await this.listCommits(from, to, path);
 
     const logGroup = 'List commits';
@@ -80,34 +101,49 @@ class IssueNumberTitleExporter {
 
     const commitMessages = commits.map(commit => commit.message + (commit.body ? `\n${commit.body}` : ''));
 
-    const allIssueNumbers = commitMessages.flatMap(msg => this.extractIssueNumbers(msg));
-    const uniqueIssueNumbers = [...new Set(allIssueNumbers)];
-    return uniqueIssueNumbers.sort();
+    const allIssueNumbers = commitMessages.flatMap(msg => this.extractIssueNumbersWithScope(msg));
+    const uniqueIssueNumbersMap = new Map<string, Set<string>>();
+
+    allIssueNumbers.forEach(({ issueNumber, scope }) => {
+      if (!uniqueIssueNumbersMap.has(issueNumber)) {
+        uniqueIssueNumbersMap.set(issueNumber, new Set());
+      }
+      if (scope) {
+        uniqueIssueNumbersMap.get(issueNumber)!.add(scope);
+      }
+    });
+
+    return uniqueIssueNumbersMap;
   };
 
   private async getIssueFromTracker(issueNumber: string): Promise<IssueSummary> {
     return this.trackerIssueExporter.findIssue(issueNumber);
   }
 
-  private async listIssueNumberTitles(from: string, to: string, path: string): Promise<Array<{ issueNumber: string; title: string }>> {
-    const issueNumbers = await this.listUniqueIssueNumbers(from, to, path);
-    let issueNumberTitlePairs: Array<{ issueNumber: string; title: string }> = [];
+  private async listIssueNumberTitles(from: string, to: string, path: string): Promise<IssueInfo[]> {
+    const issueNumbersMap = await this.listUniqueIssueNumbers(from, to, path);
+    let issueNumberTitlePairs: IssueInfo[] = [];
 
     const logGroup = 'Get issue title for each issue number';
-    for (let i = 0; i < issueNumbers.length; ++i) {
-      const issueNumber = issueNumbers[i];
+    let i = 0;
+    for (const [issueNumber, scopes] of issueNumbersMap.entries()) {
+      i++;
       try {
         const {title, link} = await this.getIssueFromTracker(issueNumber);
-        issueNumberTitlePairs.push({ issueNumber: `[${issueNumber}](${link})`, title });
-        this.log(logGroup, `[${i + 1}/${issueNumbers.length}] Success: [${issueNumber}] | ${title}`);
+        issueNumberTitlePairs.push({
+          issueNumber: `[${issueNumber}](${link})`,
+          title,
+          scopes: Array.from(scopes)
+        });
+        this.log(logGroup, `[${i}/${issueNumbersMap.size}] Success: [${issueNumber}] | ${title} | Scopes: ${Array.from(scopes).join(', ')}`);
       } catch (e) {
-        this.log(logGroup, `[${i + 1}/${issueNumbers.length}] Fail: [${issueNumber}] ${(e as Error).toString()}`);
+        this.log(logGroup, `[${i}/${issueNumbersMap.size}] Fail: [${issueNumber}] ${(e as Error).toString()}`);
       }
     }
     return issueNumberTitlePairs;
   }
 
-  public async listIssueNumberTitlesFromPR(prNumber: number, path: string): Promise<Array<{ issueNumber: string; title: string }>> {
+  public async listIssueNumberTitlesFromPR(prNumber: number, path: string): Promise<IssueInfo[]> {
     const response = await this.octokit.getPull(prNumber);
     if (response.data.base.repo.full_name !== response.data.head.repo.full_name) {
       throw new Error(`can't get diff`);
@@ -124,11 +160,14 @@ class IssueNumberTitleExporter {
 }
 
 const main = async (inputs: MainInputs, log: GroupLog) => {
-  const {octokit, trackerIssueExporter, git, projectKey} = inputs;
+  const {octokit, trackerIssueExporter, git, projectKey, includeScope} = inputs;
 
-  const issueNumberTitleExporter = new IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log, projectKey);
+  const issueNumberTitleExporter = new IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log, projectKey, includeScope);
   const issueNumberTitles = await issueNumberTitleExporter.listIssueNumberTitlesFromPR(inputs.prNumber, inputs.path);
-  const tableString = renderTable(['#issue', 'title'], issueNumberTitles.map(({ issueNumber, title }) => [issueNumber, title]));
+  const tableHeaders = includeScope ? ['#issue', 'title', 'scopes'] : ['#issue', 'title'];
+  const tableString = renderTable(tableHeaders, issueNumberTitles.map(({ issueNumber, title, scopes }) =>
+    includeScope ? [issueNumber, title, scopes.join(', ')] : [issueNumber, title]
+  ));
   const body = (await octokit.getPull(inputs.prNumber)).data.body ?? '';
   const alreadyAppended = body.includes('-RELATED-ISSUE-START-');
 
