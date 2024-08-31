@@ -18,6 +18,9 @@ inputs:
   path:
     description: "Relative path from git repo's root to where you are interested in."
     default: '.'
+  include-scope:
+    description: "Extract scope from commit messages and include it in the table. Use this when you want to display the scope of commits in the related issues table."
+    default: 'false'
 
 outputs:
   success:

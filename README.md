@@ -49,3 +49,4 @@ __Note:__ The `fetch-depth` option in `actions/checkout@v2` needs to be set 0 be
 | jira-username |    [ ]   |         | Jira username. Required for Jira.                                                              |
 | jira-token    |    [ ]   |         | Jira token from the Jira account. Required for Jira.                                           |
 | path          |    [ ]   | .       | Relative path from git repo's root to where you are interested in.                             |
+| include-scope |    [ ]   | false   | Extract scope from commit messages and include it in the table. Use this when you want to display the scope of commits in the related issues table. |

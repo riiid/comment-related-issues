@@ -105098,6 +105098,7 @@ var createTrackerIssueExporter = function (tracker) {
                         prNumber: prNumber,
                         path: path || '.',
                         projectKey: core.getInput('project-key'),
+                        includeScope: core.getInput('include-scope') === 'true',
                     }, getLogger(core))];
             case 2:
                 _c.sent();
@@ -105200,7 +105201,7 @@ var renderTable = function (header, body) {
     var wrap = function (s, w) { return w + s + w; };
     var headerString = wrap(header.join('|'), '|');
     var headerBody = body.map(function (row) { return wrap(row.join('|'), '|'); });
-    return __spreadArray([headerString, '|---|---|'], __read(headerBody), false).join('\n');
+    return __spreadArray([headerString, '|' + header.map(function () { return '---'; }).join('|') + '|'], __read(headerBody), false).join('\n');
 };
 var wrapTableWithComment = function (table) {
     return ['<!--RELATED-ISSUE-START-->', '## Related Issues (Auto updated)', table, '<!--RELATED-ISSUE-END-->'].join('\n');
@@ -105216,14 +105217,23 @@ var ensureIssueTableString = function (body, table, replace) {
     var newBody = replace ? replaceIssueTableString(body, table) : appendIssueTableString(body, table);
     return newBody;
 };
+// extract scope from commit message
+// e.g. fix(scope): message -> scope
+// e.g. fix: message -> undefined
+var extractScopeFromCommitMessage = function (message) {
+    var match = message.match(/^(\w+)(?:\(([^)]+)\))?:/);
+    return match ? match[2] : undefined;
+};
 var IssueNumberTitleExporter = /** @class */ (function () {
-    function IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log, projectKey) {
+    function IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log, projectKey, includeScope) {
         if (log === void 0) { log = function () { }; }
+        if (includeScope === void 0) { includeScope = false; }
         this.octokit = octokit;
         this.trackerIssueExporter = trackerIssueExporter;
         this.git = git;
         this.log = log;
         this.projectKey = projectKey;
+        this.includeScope = includeScope;
     }
     IssueNumberTitleExporter.prototype.listCommits = function (from, to, path) {
         return __awaiter(this, void 0, void 0, function () {
@@ -105248,21 +105258,36 @@ var IssueNumberTitleExporter = /** @class */ (function () {
             });
         });
     };
-    IssueNumberTitleExporter.prototype.extractIssueNumbers = function (s) {
-        var uprStr = s.toUpperCase();
+    IssueNumberTitleExporter.prototype.extractIssueNumbersWithScope = function (str) {
+        var e_1, _a;
+        var strs = str.split('\n');
         var result = [];
-        var x;
-        var regex = this.projectKey ? new RegExp("(".concat(this.projectKey.toUpperCase(), "-\\d+)"), 'g') : /([A-Z]?[A-Z0-9]+-\d+)/g;
-        while ((x = regex.exec(uprStr)) !== null) {
-            result = result.concat(x.slice(1));
+        try {
+            for (var strs_1 = __values(strs), strs_1_1 = strs_1.next(); !strs_1_1.done; strs_1_1 = strs_1.next()) {
+                var line = strs_1_1.value;
+                var uprStr = line.toUpperCase();
+                var x = void 0;
+                var regex = this.projectKey ? new RegExp("(".concat(this.projectKey.toUpperCase(), "-\\d+)"), 'g') : /([A-Z]?[A-Z0-9]+-\d+)/g;
+                while ((x = regex.exec(uprStr)) !== null) {
+                    var issueNumber = x[1];
+                    var scope = this.includeScope ? extractScopeFromCommitMessage(line) : undefined;
+                    result.push({ issueNumber: issueNumber, scope: scope });
+                }
+            }
+        }
+        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+        finally {
+            try {
+                if (strs_1_1 && !strs_1_1.done && (_a = strs_1.return)) _a.call(strs_1);
+            }
+            finally { if (e_1) throw e_1.error; }
         }
         return result;
     };
-    ;
     IssueNumberTitleExporter.prototype.listUniqueIssueNumbers = function (from, to, path) {
         return __awaiter(this, void 0, void 0, function () {
-            var commits, logGroup, commits_1, commits_1_1, commit, commitMessages, allIssueNumbers, uniqueIssueNumbers;
-            var e_1, _a;
+            var commits, logGroup, commits_1, commits_1_1, commit, commitMessages, allIssueNumbers, uniqueIssueNumbersMap;
+            var e_2, _a;
             var _this = this;
             return __generator(this, function (_b) {
                 switch (_b.label) {
@@ -105277,17 +105302,26 @@ var IssueNumberTitleExporter = /** @class */ (function () {
                                 this.log(logGroup, "".concat(commit.hash, " ").concat(commit.message));
                             }
                         }
-                        catch (e_1_1) { e_1 = { error: e_1_1 }; }
+                        catch (e_2_1) { e_2 = { error: e_2_1 }; }
                         finally {
                             try {
                                 if (commits_1_1 && !commits_1_1.done && (_a = commits_1.return)) _a.call(commits_1);
                             }
-                            finally { if (e_1) throw e_1.error; }
+                            finally { if (e_2) throw e_2.error; }
                         }
                         commitMessages = commits.map(function (commit) { return commit.message + (commit.body ? "\n".concat(commit.body) : ''); });
-                        allIssueNumbers = commitMessages.flatMap(function (msg) { return _this.extractIssueNumbers(msg); });
-                        uniqueIssueNumbers = __spreadArray([], __read(new Set(allIssueNumbers)), false);
-                        return [2 /*return*/, uniqueIssueNumbers.sort()];
+                        allIssueNumbers = commitMessages.flatMap(function (msg) { return _this.extractIssueNumbersWithScope(msg); });
+                        uniqueIssueNumbersMap = new Map();
+                        allIssueNumbers.forEach(function (_a) {
+                            var issueNumber = _a.issueNumber, scope = _a.scope;
+                            if (!uniqueIssueNumbersMap.has(issueNumber)) {
+                                uniqueIssueNumbersMap.set(issueNumber, new Set());
+                            }
+                            if (scope) {
+                                uniqueIssueNumbersMap.get(issueNumber).add(scope);
+                            }
+                        });
+                        return [2 /*return*/, uniqueIssueNumbersMap];
                 }
             });
         });
@@ -105302,36 +105336,57 @@ var IssueNumberTitleExporter = /** @class */ (function () {
     };
     IssueNumberTitleExporter.prototype.listIssueNumberTitles = function (from, to, path) {
         return __awaiter(this, void 0, void 0, function () {
-            var issueNumbers, issueNumberTitlePairs, logGroup, i, issueNumber, _a, title, link, e_2;
-            return __generator(this, function (_b) {
-                switch (_b.label) {
+            var issueNumbersMap, issueNumberTitlePairs, logGroup, i, _a, _b, _c, issueNumber, scopes, _d, title, link, e_3, e_4_1;
+            var e_4, _e;
+            return __generator(this, function (_f) {
+                switch (_f.label) {
                     case 0: return [4 /*yield*/, this.listUniqueIssueNumbers(from, to, path)];
                     case 1:
-                        issueNumbers = _b.sent();
+                        issueNumbersMap = _f.sent();
                         issueNumberTitlePairs = [];
                         logGroup = 'Get issue title for each issue number';
                         i = 0;
-                        _b.label = 2;
+                        _f.label = 2;
                     case 2:
-                        if (!(i < issueNumbers.length)) return [3 /*break*/, 7];
-                        issueNumber = issueNumbers[i];
-                        _b.label = 3;
+                        _f.trys.push([2, 9, 10, 11]);
+                        _a = __values(issueNumbersMap.entries()), _b = _a.next();
+                        _f.label = 3;
                     case 3:
-                        _b.trys.push([3, 5, , 6]);
-                        return [4 /*yield*/, this.getIssueFromTracker(issueNumber)];
+                        if (!!_b.done) return [3 /*break*/, 8];
+                        _c = __read(_b.value, 2), issueNumber = _c[0], scopes = _c[1];
+                        i++;
+                        _f.label = 4;
                     case 4:
-                        _a = _b.sent(), title = _a.title, link = _a.link;
-                        issueNumberTitlePairs.push(["[".concat(issueNumber, "](").concat(link, ")"), title]);
-                        this.log(logGroup, "[".concat(i + 1, "/").concat(issueNumbers.length, "] Success: [").concat(issueNumber, "] | ").concat(title));
-                        return [3 /*break*/, 6];
+                        _f.trys.push([4, 6, , 7]);
+                        return [4 /*yield*/, this.getIssueFromTracker(issueNumber)];
                     case 5:
-                        e_2 = _b.sent();
-                        this.log(logGroup, "[".concat(i + 1, "/").concat(issueNumbers.length, "] Fail: [").concat(issueNumber, "] ").concat(e_2.toString()));
-                        return [3 /*break*/, 6];
+                        _d = _f.sent(), title = _d.title, link = _d.link;
+                        issueNumberTitlePairs.push({
+                            issueNumber: "[".concat(issueNumber, "](").concat(link, ")"),
+                            title: title,
+                            scopes: Array.from(scopes)
+                        });
+                        this.log(logGroup, "[".concat(i, "/").concat(issueNumbersMap.size, "] Success: [").concat(issueNumber, "] | ").concat(title, " | Scopes: ").concat(Array.from(scopes).join(', ')));
+                        return [3 /*break*/, 7];
                     case 6:
-                        ++i;
-                        return [3 /*break*/, 2];
-                    case 7: return [2 /*return*/, issueNumberTitlePairs];
+                        e_3 = _f.sent();
+                        this.log(logGroup, "[".concat(i, "/").concat(issueNumbersMap.size, "] Fail: [").concat(issueNumber, "] ").concat(e_3.toString()));
+                        return [3 /*break*/, 7];
+                    case 7:
+                        _b = _a.next();
+                        return [3 /*break*/, 3];
+                    case 8: return [3 /*break*/, 11];
+                    case 9:
+                        e_4_1 = _f.sent();
+                        e_4 = { error: e_4_1 };
+                        return [3 /*break*/, 11];
+                    case 10:
+                        try {
+                            if (_b && !_b.done && (_e = _a.return)) _e.call(_a);
+                        }
+                        finally { if (e_4) throw e_4.error; }
+                        return [7 /*endfinally*/];
+                    case 11: return [2 /*return*/, issueNumberTitlePairs];
                 }
             });
         });
@@ -105360,17 +105415,21 @@ var IssueNumberTitleExporter = /** @class */ (function () {
     return IssueNumberTitleExporter;
 }());
 var main = function (inputs, log) { return __awaiter(void 0, void 0, void 0, function () {
-    var octokit, trackerIssueExporter, git, projectKey, issueNumberTitleExporter, issueNumberTitles, tableString, body, alreadyAppended, logGroup, newBody;
+    var octokit, trackerIssueExporter, git, projectKey, includeScope, issueNumberTitleExporter, issueNumberTitles, tableHeaders, tableString, body, alreadyAppended, logGroup, newBody;
     var _a;
     return __generator(this, function (_b) {
         switch (_b.label) {
             case 0:
-                octokit = inputs.octokit, trackerIssueExporter = inputs.trackerIssueExporter, git = inputs.git, projectKey = inputs.projectKey;
-                issueNumberTitleExporter = new IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log, projectKey);
+                octokit = inputs.octokit, trackerIssueExporter = inputs.trackerIssueExporter, git = inputs.git, projectKey = inputs.projectKey, includeScope = inputs.includeScope;
+                issueNumberTitleExporter = new IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log, projectKey, includeScope);
                 return [4 /*yield*/, issueNumberTitleExporter.listIssueNumberTitlesFromPR(inputs.prNumber, inputs.path)];
             case 1:
                 issueNumberTitles = _b.sent();
-                tableString = renderTable(['#issue', 'title'], issueNumberTitles);
+                tableHeaders = includeScope ? ['#issue', 'title', 'scopes'] : ['#issue', 'title'];
+                tableString = renderTable(tableHeaders, issueNumberTitles.map(function (_a) {
+                    var issueNumber = _a.issueNumber, title = _a.title, scopes = _a.scopes;
+                    return includeScope ? [issueNumber, title, scopes.join(', ')] : [issueNumber, title];
+                }));
                 return [4 /*yield*/, octokit.getPull(inputs.prNumber)];
             case 2:
                 body = (_a = (_b.sent()).data.body) !== null && _a !== void 0 ? _a : '';

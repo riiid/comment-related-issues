@@ -64,6 +64,7 @@ const createTrackerIssueExporter = (tracker: string) => {
       prNumber,
       path: path || '.',
       projectKey: core.getInput('project-key'),
+      includeScope: core.getInput('include-scope') === 'true',
     }, getLogger(core));
   } catch (e) {
     core.error(e as Error);
