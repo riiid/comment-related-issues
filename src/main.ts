@@ -89,16 +89,16 @@ class IssueNumberTitleExporter {
     return this.trackerIssueExporter.findIssue(issueNumber);
   }
 
-  private async listIssueNumberTitles(from: string, to: string, path: string): Promise<[string, string][]> {
+  private async listIssueNumberTitles(from: string, to: string, path: string): Promise<Array<{ issueNumber: string; title: string }>> {
     const issueNumbers = await this.listUniqueIssueNumbers(from, to, path);
-    let issueNumberTitlePairs: [string, string][] = [];
+    let issueNumberTitlePairs: Array<{ issueNumber: string; title: string }> = [];
 
     const logGroup = 'Get issue title for each issue number';
     for (let i = 0; i < issueNumbers.length; ++i) {
       const issueNumber = issueNumbers[i];
       try {
         const {title, link} = await this.getIssueFromTracker(issueNumber);
-        issueNumberTitlePairs.push([`[${issueNumber}](${link})`, title]);
+        issueNumberTitlePairs.push({ issueNumber: `[${issueNumber}](${link})`, title });
         this.log(logGroup, `[${i + 1}/${issueNumbers.length}] Success: [${issueNumber}] | ${title}`);
       } catch (e) {
         this.log(logGroup, `[${i + 1}/${issueNumbers.length}] Fail: [${issueNumber}] ${(e as Error).toString()}`);
@@ -107,7 +107,7 @@ class IssueNumberTitleExporter {
     return issueNumberTitlePairs;
   }
 
-  public async listIssueNumberTitlesFromPR(prNumber: number, path: string): Promise<[string, string][]> {
+  public async listIssueNumberTitlesFromPR(prNumber: number, path: string): Promise<Array<{ issueNumber: string; title: string }>> {
     const response = await this.octokit.getPull(prNumber);
     if (response.data.base.repo.full_name !== response.data.head.repo.full_name) {
       throw new Error(`can't get diff`);
@@ -128,7 +128,7 @@ const main = async (inputs: MainInputs, log: GroupLog) => {
 
   const issueNumberTitleExporter = new IssueNumberTitleExporter(octokit, trackerIssueExporter, git, log, projectKey);
   const issueNumberTitles = await issueNumberTitleExporter.listIssueNumberTitlesFromPR(inputs.prNumber, inputs.path);
-  const tableString = renderTable(['#issue', 'title'], issueNumberTitles);
+  const tableString = renderTable(['#issue', 'title'], issueNumberTitles.map(({ issueNumber, title }) => [issueNumber, title]));
   const body = (await octokit.getPull(inputs.prNumber)).data.body ?? '';
   const alreadyAppended = body.includes('-RELATED-ISSUE-START-');
 
