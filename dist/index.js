@@ -105221,7 +105221,7 @@ var ensureIssueTableString = function (body, table, replace) {
 // e.g. fix(scope): message -> scope
 // e.g. fix: message -> undefined
 var extractScopeFromCommitMessage = function (message) {
-    var match = message.match(/^(\w+)(?:\(([^)]+)\))?:/);
+    var match = message.match(/^\s*\*?\s*(\w+)(?:\(([^)]+)\))?:/);
     return match ? match[2] : undefined;
 };
 var IssueNumberTitleExporter = /** @class */ (function () {

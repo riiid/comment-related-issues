@@ -50,7 +50,7 @@ const ensureIssueTableString = (body: string, table: string, replace: boolean) =
 // e.g. fix(scope): message -> scope
 // e.g. fix: message -> undefined
 const extractScopeFromCommitMessage = (message: string): string | undefined => {
-  const match = message.match(/^(\w+)(?:\(([^)]+)\))?:/);
+  const match = message.match(/^\s*\*?\s*(\w+)(?:\(([^)]+)\))?:/);
   return match ? match[2] : undefined;
 };
 
