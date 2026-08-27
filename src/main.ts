@@ -33,7 +33,7 @@ const wrapTableWithComment = (table: string) => {
 }
 
 const replaceIssueTableString = (body: string, table: string) => {
-  const result = body.replace(/<!--RELATED-ISSUE-START-->(.|\s)*<!--RELATED-ISSUE-END-->/, wrapTableWithComment(table));
+  const result = body.replace(/<!--RELATED-ISSUE-START-->[\s\S]*?<!--RELATED-ISSUE-END-->/, wrapTableWithComment(table));
   return result;
 };
 

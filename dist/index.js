@@ -105207,7 +105207,7 @@ var wrapTableWithComment = function (table) {
     return ['<!--RELATED-ISSUE-START-->', '## Related Issues (Auto updated)', table, '<!--RELATED-ISSUE-END-->'].join('\n');
 };
 var replaceIssueTableString = function (body, table) {
-    var result = body.replace(/<!--RELATED-ISSUE-START-->(.|\s)*<!--RELATED-ISSUE-END-->/, wrapTableWithComment(table));
+    var result = body.replace(/<!--RELATED-ISSUE-START-->[\s\S]*?<!--RELATED-ISSUE-END-->/, wrapTableWithComment(table));
     return result;
 };
 var appendIssueTableString = function (body, table) {
